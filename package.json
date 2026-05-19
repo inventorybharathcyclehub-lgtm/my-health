@@ -9,6 +9,7 @@
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:diet": "tsx prisma/diet-seed.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate"
   },
@@ -16,6 +17,7 @@
     "next": "15.5.18",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "@anthropic-ai/sdk": "0.32.1",
     "@prisma/client": "5.22.0",
     "next-auth": "4.24.10",
     "@auth/prisma-adapter": "2.7.4",

@@ -30,6 +30,8 @@ model User {
   blood     BloodReport[]
   accounts  Account[]
   sessions  Session[]
+  locations Location[]
+  checklist ChecklistOverride[]
 }
 
 model PrayerLog {
@@ -153,6 +155,56 @@ model Hadith {
   reference   String   // e.g. "Tirmidhi 2621"
   category    String   // "missed-salah" | "neglect-salah" | "encouragement"
   severity    Int      @default(3) // 1-5, 5 = strongest warning
+}
+
+// Pre-built meal options for the Indian-halal 1900-kcal plan.
+// User picks from these and taps to log instead of photographing every meal.
+model DietPlan {
+  id          String   @id @default(cuid())
+  name        String
+  mealType    String   // breakfast | lunch | dinner | snack
+  calories    Int
+  proteinG    Float
+  carbsG      Float
+  fatG        Float
+  fiberG      Float?
+  description String?
+  isHalal     Boolean  @default(true)
+  isVeg       Boolean  @default(false)
+  tags        String[] @default([])
+  sortOrder   Int      @default(0)
+
+  @@index([mealType])
+}
+
+// Geofence locations — the mosque, gym, home. Used to auto-mark salah
+// when the user opens the app within `radiusM` meters of the location.
+model Location {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String   // "Yelahanka New Town Masjid"
+  kind      String   // "mosque" | "gym" | "home" | "work"
+  lat       Float
+  lng       Float
+  radiusM   Int      @default(75)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Optional manual checklist overrides per day (water, qur'an, no-sugar).
+// Salah/weight/sleep/cycle items are computed from existing logs, not stored here.
+model ChecklistOverride {
+  id     String   @id @default(cuid())
+  userId String
+  date   DateTime @db.Date
+  key    String   // "water_2l" | "quran_10min" | "no_sugar" | etc
+  done   Boolean  @default(false)
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, key])
+  @@index([userId, date])
 }
 
 // NextAuth tables

@@ -3,6 +3,7 @@ import { todayIST, PRAYERS, type PrayerName } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { randomHadith, strongestHadith } from "@/lib/hadith";
 import { HadithCard } from "@/components/HadithCard";
+import { SalahCheckIn } from "@/components/SalahCheckIn";
 
 export const dynamic = "force-dynamic";
 
@@ -27,15 +28,15 @@ async function togglePrayer(formData: FormData) {
 
 export default async function SalahPage() {
   const date = todayIST();
-  const [log, allLogs, hadith] = await Promise.all([
+  const [log, allLogs, hadith, mosques] = await Promise.all([
     prisma.prayerLog.findUnique({ where: { userId_date: { userId: USER_ID, date } } }),
     prisma.prayerLog.findMany({ where: { userId: USER_ID } }),
-    // If any prayer missed today → strongest warning. Otherwise time-aware hadith.
     (async () => {
       const todayLog = await prisma.prayerLog.findUnique({ where: { userId_date: { userId: USER_ID, date } } });
       const missedToday = !todayLog || PRAYERS.some((p) => !todayLog[p]);
       return missedToday ? strongestHadith() : randomHadith();
     })(),
+    prisma.location.findMany({ where: { userId: USER_ID, kind: "mosque" } }),
   ]);
 
   const missedCount = allLogs.reduce((acc, p) => acc + PRAYERS.filter((k) => !p[k]).length, 0);
@@ -54,6 +55,8 @@ export default async function SalahPage() {
       <div className="mt-4">
         <HadithCard hadith={hadith} />
       </div>
+
+      <SalahCheckIn mosques={mosques.map((m) => ({ id: m.id, name: m.name, lat: m.lat, lng: m.lng, radiusM: m.radiusM }))} />
 
       <div className="mt-6 space-y-2">
         {PRAYERS.map((p) => {
