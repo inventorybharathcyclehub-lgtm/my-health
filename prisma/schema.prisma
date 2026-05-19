@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  image         String?
+  dob           DateTime?
+  heightCm      Int?
+  startWeightKg Float?
+  targetWeightKg Float?  @default(80)
+  city          String?  @default("Bangalore")
+  madhhab       String?  @default("standard") // "standard" | "hanafi"
+  timezone      String?  @default("Asia/Kolkata")
+  createdAt     DateTime @default(now())
+
+  prayers   PrayerLog[]
+  weights   WeightLog[]
+  sleeps    SleepLog[]
+  cycles    CycleLog[]
+  meals     MealLog[]
+  metrics   DailyMetric[]
+  blood     BloodReport[]
+  accounts  Account[]
+  sessions  Session[]
+}
+
+model PrayerLog {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime @db.Date
+  fajr      Boolean  @default(false)
+  dhuhr     Boolean  @default(false)
+  asr       Boolean  @default(false)
+  maghrib   Boolean  @default(false)
+  isha      Boolean  @default(false)
+  notes     String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model WeightLog {
+  id         String   @id @default(cuid())
+  userId     String
+  date       DateTime @db.Date
+  weightKg   Float
+  bodyFatPct Float?
+  waistCm    Float?
+  notes      String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model SleepLog {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime @db.Date  // night-of date
+  bedTime   DateTime
+  wakeTime  DateTime
+  hours     Float
+  quality   Int      @default(3) // 1-5
+  notes     String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model CycleLog {
+  id          String   @id @default(cuid())
+  userId      String
+  date        DateTime @db.Date
+  distanceKm  Float
+  durationMin Int
+  avgSpeedKmh Float?
+  calories    Int?
+  notes       String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model MealLog {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime @db.Date
+  mealType  String   // breakfast | lunch | dinner | snack
+  name      String
+  calories  Int
+  proteinG  Float?
+  carbsG    Float?
+  fatG      Float?
+  photoUrl  String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model DailyMetric {
+  id              String   @id @default(cuid())
+  userId          String
+  date            DateTime @db.Date
+  mood            Int?     // 1-5
+  energy          Int?     // 1-5
+  focus           Int?     // 1-5
+  productivity    Int?     // 1-10 self-rated
+  steps           Int?
+  waterMl         Int?
+  notes           String?
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model BloodReport {
+  id             String   @id @default(cuid())
+  userId         String
+  date           DateTime @db.Date
+  hba1c          Float?
+  fastingGlucose Float?
+  ldl            Float?
+  hdl            Float?
+  triglycerides  Float?
+  sgot           Float?
+  sgpt           Float?
+  vitD           Float?
+  vitB12         Float?
+  tsh            Float?
+  testosterone   Float?
+  reportUrl      String?
+  notes          String?
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model Hadith {
+  id          String   @id @default(cuid())
+  arabic      String?
+  english     String
+  reference   String   // e.g. "Tirmidhi 2621"
+  category    String   // "missed-salah" | "neglect-salah" | "encouragement"
+  severity    Int      @default(3) // 1-5, 5 = strongest warning
+}
+
+// NextAuth tables
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
