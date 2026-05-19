@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { todayIST, PRAYERS, type PrayerName } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
+import { randomHadith, strongestHadith } from "@/lib/hadith";
+import { HadithCard } from "@/components/HadithCard";
 
 export const dynamic = "force-dynamic";
 
@@ -25,18 +27,18 @@ async function togglePrayer(formData: FormData) {
 
 export default async function SalahPage() {
   const date = todayIST();
-  const log = await prisma.prayerLog.findUnique({
-    where: { userId_date: { userId: USER_ID, date } },
-  });
+  const [log, allLogs, hadith] = await Promise.all([
+    prisma.prayerLog.findUnique({ where: { userId_date: { userId: USER_ID, date } } }),
+    prisma.prayerLog.findMany({ where: { userId: USER_ID } }),
+    // If any prayer missed today → strongest warning. Otherwise time-aware hadith.
+    (async () => {
+      const todayLog = await prisma.prayerLog.findUnique({ where: { userId_date: { userId: USER_ID, date } } });
+      const missedToday = !todayLog || PRAYERS.some((p) => !todayLog[p]);
+      return missedToday ? strongestHadith() : randomHadith();
+    })(),
+  ]);
 
-  // Total qada debt and pick one hadith for warning
-  const allLogs = await prisma.prayerLog.findMany({ where: { userId: USER_ID } });
   const missedCount = allLogs.reduce((acc, p) => acc + PRAYERS.filter((k) => !p[k]).length, 0);
-
-  const strongHadith = await prisma.hadith.findFirst({
-    where: { category: { in: ["missed-salah", "neglect-salah"] }, severity: { gte: 4 } },
-    orderBy: { id: "asc" },
-  });
 
   return (
     <main className="mx-auto max-w-md p-4">
@@ -46,13 +48,11 @@ export default async function SalahPage() {
       <div className="mt-4 rounded-xl border border-red-900/50 bg-red-950/30 p-4">
         <p className="text-xs uppercase tracking-widest text-red-300">Qada debt — prayers you have missed</p>
         <p className="mt-1 text-4xl font-bold text-red-200">{missedCount}</p>
-        {strongHadith && (
-          <div className="mt-3 border-t border-red-900/40 pt-3 text-sm">
-            {strongHadith.arabic && <p className="text-right text-base leading-loose text-amber-200">{strongHadith.arabic}</p>}
-            <p className="mt-1 italic text-red-100">&ldquo;{strongHadith.english}&rdquo;</p>
-            <p className="mt-1 text-xs text-red-300">— {strongHadith.reference}</p>
-          </div>
-        )}
+        <p className="mt-1 text-xs text-red-300/80">Every miss adds to this. Make qada in sha Allah.</p>
+      </div>
+
+      <div className="mt-4">
+        <HadithCard hadith={hadith} />
       </div>
 
       <div className="mt-6 space-y-2">

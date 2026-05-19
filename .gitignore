@@ -6,3 +6,4 @@ node_modules
 *.log
 .vercel
 prisma/dev.db*
+.env*.local

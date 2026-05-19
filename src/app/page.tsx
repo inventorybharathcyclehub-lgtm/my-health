@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { todayIST, PRAYERS } from "@/lib/utils";
 import { getPrayerTimes } from "@/lib/aladhan";
+import { randomHadith } from "@/lib/hadith";
+import { HadithCard } from "@/components/HadithCard";
 
 export const dynamic = "force-dynamic";
 
@@ -29,12 +31,13 @@ export default async function HomePage() {
   await ensureDemoUser();
 
   const today = todayIST();
-  const [prayer, weight, sleep, cycle, totalMissed] = await Promise.all([
+  const [prayer, weight, sleep, cycle, totalMissed, hadith] = await Promise.all([
     prisma.prayerLog.findUnique({ where: { userId_date: { userId: DEMO_USER_ID, date: today } } }),
     prisma.weightLog.findFirst({ where: { userId: DEMO_USER_ID }, orderBy: { date: "desc" } }),
     prisma.sleepLog.findFirst({ where: { userId: DEMO_USER_ID }, orderBy: { date: "desc" } }),
     prisma.cycleLog.findFirst({ where: { userId: DEMO_USER_ID }, orderBy: { date: "desc" } }),
     prisma.prayerLog.findMany({ where: { userId: DEMO_USER_ID } }),
+    randomHadith(),
   ]);
 
   let times: Awaited<ReturnType<typeof getPrayerTimes>> | null = null;
@@ -54,6 +57,8 @@ export default async function HomePage() {
         <h1 className="text-2xl font-semibold">Assalamu alaikum, Syed</h1>
         <p className="text-sm text-white/60">Today — {today.toDateString()} · Bangalore</p>
       </header>
+
+      <HadithCard hadith={hadith} />
 
       <section className="mb-4 rounded-2xl bg-gradient-to-br from-emerald-900 to-emerald-950 p-4">
         <div className="flex items-center justify-between">
