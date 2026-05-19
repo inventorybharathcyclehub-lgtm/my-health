@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { todayIST } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
+export const dynamic = "force-dynamic";
+
 const USER_ID = "demo-syed";
 
 async function logSleep(formData: FormData) {

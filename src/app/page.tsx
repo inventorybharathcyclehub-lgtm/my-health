@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { todayIST, PRAYERS } from "@/lib/utils";
 import { getPrayerTimes } from "@/lib/aladhan";
 
+export const dynamic = "force-dynamic";
+
 // For V1 we hardcode a single user (you). Add NextAuth Google in next iteration.
 const DEMO_USER_ID = "demo-syed";
 
